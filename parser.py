@@ -14,7 +14,8 @@ links = [
 class PhoneParser(threading.Thread):
     """Class Phone Parser.
     Constructor takes url, regular expression template
-    and list to store results phone numbers"""
+    and list to store results phone numbers
+    """
 
     def __init__(self, url, phone_template, out_phones, *args, **kwargs):
         super().__init__(*args, **kwargs)
