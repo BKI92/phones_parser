@@ -1,12 +1,12 @@
-import time
 import re
 import threading
+import time
+from typing import List, Set
 
 import requests
 
-
 MAX_THREADS_LOCKER = threading.BoundedSemaphore(100)
-PHONE_TEMPLATE = r'[7|8]?[-|\s]?\(?\d{3}?\)?[-|\s]?\d{3}[-|\s]?\d{2}[-|\s]?\d{2}<'
+PHONE_TEMPLATE = r'[7|8]?[-|\s]?\(?\d{3}?\)?[-|\s]?\d{3}[-|\s]?\d{2}[-|\s]?\d{2}\s?<'
 
 links = [
     'https://masterdel.ru/',
@@ -16,16 +16,17 @@ links = [
 
 
 class PageLoader(threading.Thread):
-    """Class Page Parser.
+    """Class Page Loader.
     Load html pages from given url
     """
 
-    def __init__(self, url, pages, *args, **kwargs):
+    def __init__(self, url: str, pages: list, *args: tuple,
+                 **kwargs: dict) -> None:
         super().__init__(*args, **kwargs)
         self.url = url
         self.pages = pages
 
-    def run(self):
+    def run(self) -> None:
         MAX_THREADS_LOCKER.acquire()
         try:
             response = requests.get(self.url)
@@ -56,26 +57,22 @@ class PageParser(threading.Thread):
     and list to store results phone numbers
     """
 
-    def __init__(self, page, phone_template, out_phones, *args, **kwargs):
+    def __init__(self, page: str, phone_template: str, out_phones: List[str],
+                 *args: tuple, **kwargs: dict) -> None:
         super().__init__(*args, **kwargs)
         self.page = page
         self.phone_template = phone_template
         self.out_phones = out_phones
 
-    def run(self):
-        """Parse phones from response and """
+    def run(self) -> None:
+        """Parse phones from loaded pages """
         MAX_THREADS_LOCKER.acquire()
-        try:
-            input_phones = re.findall(self.phone_template, self.page)
-            self.out_phones.extend(self.normalize_phones(input_phones))
-        except Exception as exc:
-            with open('errors.txt', 'a', encoding='utf8') as file:
-                print(exc)
-        finally:
-            MAX_THREADS_LOCKER.release()
+        input_phones = re.findall(self.phone_template, self.page)
+        self.out_phones.extend(self.normalize_phones(input_phones))
+        MAX_THREADS_LOCKER.release()
 
     @staticmethod
-    def normalize_phones(phones):
+    def normalize_phones(phones: List[str]) -> Set[str]:
         """Convert phone number to 8KKKNNNNNNN"""
         normalized_phones = set()
         for phone in phones:
@@ -104,7 +101,8 @@ def time_track(func):
     return surrogate
 
 
-def get_pages(urls):
+def get_pages(urls: List[str]) -> List[str]:
+    """Create threads, which load pages"""
     loaded_pages = []
     loaders = [PageLoader(url, loaded_pages) for url in urls]
     for loader in loaders:
@@ -116,7 +114,8 @@ def get_pages(urls):
 
 
 @time_track
-def get_phones(urls):
+def get_phones(urls: List[str]) -> List[str]:
+    """Create threads, which find phones from string"""
     out_phones = []
     parsers = [PageParser(page, PHONE_TEMPLATE, out_phones) for page in
                get_pages(urls)]
