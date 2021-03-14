@@ -27,7 +27,7 @@ class PageLoader(threading.Thread):
         self.pages = pages
 
     def get_page(self):
-        return requests.get(self.url)
+        return requests.get(self.url, timeout=1)
 
     def run(self) -> None:
         MAX_THREADS_LOCKER.acquire()
