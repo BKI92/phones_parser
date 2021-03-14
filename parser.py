@@ -6,7 +6,7 @@ from typing import List, Set
 import requests
 
 MAX_THREADS_LOCKER = threading.BoundedSemaphore(100)
-PHONE_TEMPLATE = r'[7|8]?[-|\s]?\(?\d{3}?\)?[-|\s]?\d{3}[-|\s]?\d{2}[-|\s]?\d{2}\s?<'
+PHONE_TEMPLATE = r'([7|8]?[-|\s]?\(?\d{3}?\)?[-|\s]?\d{3}[-|\s]?\d{2}[-|\s]?\d{2}|\d{3}[-|\s]?\d{2}[-|\s]?\d{2})\s?<'
 
 links = [
     'https://masterdel.ru/',
@@ -26,10 +26,13 @@ class PageLoader(threading.Thread):
         self.url = url
         self.pages = pages
 
+    def get_page(self):
+        return requests.get(self.url)
+
     def run(self) -> None:
         MAX_THREADS_LOCKER.acquire()
         try:
-            response = requests.get(self.url)
+            response = self.get_page()
             self.pages.append(response.text)
             with open('processed.txt', 'a', encoding='utf8') as file:
                 file.write(f'{time.ctime(time.time())}   '
@@ -40,6 +43,7 @@ class PageLoader(threading.Thread):
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
                 ) as exc:
+            print(exc)
             with open('errors.txt', 'a', encoding='utf8') as file:
                 file.write(f'{time.ctime(time.time())} \n'
                            f'{exc} \n')
@@ -64,10 +68,13 @@ class PageParser(threading.Thread):
         self.phone_template = phone_template
         self.out_phones = out_phones
 
+    def find_phones(self) -> List[str]:
+        return re.findall(self.phone_template, self.page)
+
     def run(self) -> None:
         """Parse phones from loaded pages """
         MAX_THREADS_LOCKER.acquire()
-        input_phones = re.findall(self.phone_template, self.page)
+        input_phones = self.find_phones()
         self.out_phones.extend(self.normalize_phones(input_phones))
         MAX_THREADS_LOCKER.release()
 
