@@ -43,7 +43,6 @@ class PageLoader(threading.Thread):
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
                 ) as exc:
-            print(exc)
             with open('errors.txt', 'a', encoding='utf8') as file:
                 file.write(f'{time.ctime(time.time())} \n'
                            f'{exc} \n')
